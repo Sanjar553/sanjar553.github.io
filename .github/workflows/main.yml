@@ -1,4 +1,4 @@
-name: Windows 10 Cloud PC
+name: Windows Cloud PC
 
 on:
   workflow_dispatch:
@@ -22,9 +22,16 @@ jobs:
     - name: Pinggy tunnelini ochish
       shell: powershell
       run: |
-        ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:3389 a.pinggy.io > pinggy.log 2>&1 &
+        # Background jarayonini PowerShell mos usulda ishga tushirish
+        Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -p 443 -R0:localhost:3389 a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
+        
+        # Tunnel ochilishi uchun 10 soniya kutamiz
         Start-Sleep -Seconds 10
+        
+        # Log faylidan ulanish manzilini o'qiymiz
+        Write-Host "==========================================" -ForegroundColor Green
         Get-Content pinggy.log | Select-String "tcp://"
+        Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
