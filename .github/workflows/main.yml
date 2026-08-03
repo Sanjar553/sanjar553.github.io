@@ -1,4 +1,4 @@
-name: Windows 10 Cloud PC WOW
+name: Windows Cloud PC
 
 on:
   workflow_dispatch:
@@ -8,20 +8,25 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: User yaratish va RDP sozlash
+    - name: RDP Xizmatlarini to'liq ishga tushirish
       shell: powershell
       run: |
+        # Parol va User yaratish
         secedit /export /cfg cfg.ini
         (Get-Content cfg.ini) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content cfg.ini
         secedit /configure /db $env:windir\security\new.sdb /cfg cfg.ini /areas SECURITYPOLICY
         net user Sanjar "${{ secrets.PC_PASSWORD }}" /add
         net localgroup Administrators Sanjar /add
+        
+        # RDP Registry va Servislarini yoqish
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Set-Service -Name "TermService" -StartupType Automatic
-        Start-Service -Name "TermService"
+        
+        # RDP xizmatini majburiy qayta yoqish
+        Restart-Service -Name "TermService" -Force
 
-    - name: Tailscale o'rnatish va Ulanish
+    - name: Tailscale orqali Tarmoqqa ulash
       shell: powershell
       run: |
         choco install tailscale -y
@@ -29,7 +34,7 @@ jobs:
         Start-Sleep -Seconds 5
         $ip = (tailscale ip -4)
         Write-Host "==========================================" -ForegroundColor Green
-        Write-Host "TAILSCALE IP MANZILI: $ip" -ForegroundColor Yellow
+        Write-Host "ULANISH UCHUN TAILSCALE IP: $ip" -ForegroundColor Yellow
         Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
