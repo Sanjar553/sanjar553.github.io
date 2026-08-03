@@ -1,4 +1,4 @@
-name: Windows Cloud PC
+name: Windows 10 Cloud PC
 
 on:
   workflow_dispatch:
@@ -19,22 +19,12 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: Ngrok o'rnatish va Manzil chiqarish
+    - name: Pinggy tunnelini ochish
       shell: powershell
       run: |
-        choco install ngrok -y
-        ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
-        
-        # Ngrok-ni ishga tushiramiz
-        Start-Process -FilePath "ngrok" -ArgumentList "tcp 3389"
+        ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:3389 a.pinggy.io > pinggy.log 2>&1 &
         Start-Sleep -Seconds 10
-        
-        # API orqali manzilni olib, logga yozamiz
-        $res = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-        $addr = $res.tunnels[0].public_url
-        Write-Host "==========================================" -ForegroundColor Green
-        Write-Host "ULANISH MANZILI: $addr" -ForegroundColor Yellow
-        Write-Host "==========================================" -ForegroundColor Green
+        Get-Content pinggy.log | Select-String "tcp://"
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
