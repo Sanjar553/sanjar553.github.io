@@ -1,50 +1,13 @@
-name: Windows Cloud PC (Ngrok)
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: windows-latest
-
-    steps:
-    - name: Windows foydalanuvchisi va RDP ni sozlash
+- name: Windows foydalanuvchisi va RDP ni sozlash
       shell: powershell
       run: |
+        # Windows parol murakkabligi talabini o'chirish
+        secedit /export /cfg cfg.ini
+        (Get-Content cfg.ini) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content cfg.ini
+        secedit /configure /db $env:windir\security\new.sdb /cfg cfg.ini /areas SECURITYPOLICY
+        
+        # Foydalanuvchini yaratish
         net user Sanjar "${{ secrets.PC_PASSWORD }}" /add
         net localgroup Administrators Sanjar /add
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-
-    - name: Ngrok yuklab olish va RDP-ni ulash
-      shell: powershell
-      run: |
-        echo "Ngrok yuklanmoqda..."
-        Invoke-WebRequest -Uri "https://bin.equinox.io/c/b4p23AR4588/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"
-        Expand-Archive -Path "ngrok.zip" -DestinationPath "."
-        
-        echo "Authtoken sozlanmoqda..."
-        .\ngrok.exe config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
-        
-        echo "RDP Port uchun tunnel ochilmoqda..."
-        Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp 3389"
-
-    - name: Ulanish manzili va Portni chiqarish
-      shell: powershell
-      run: |
-        Start-Sleep -Seconds 10
-        echo "============================================="
-        echo "ULANISH UCHUN MANZIL VA PORT:"
-        try {
-            $log = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-            $publicUrl = $log.tunnels[0].public_url
-            echo "URL: $publicUrl"
-        } catch {
-            echo "Ngrok tunnel ma'lumotlarini ololmadi. Loglarni tekshiring."
-        }
-        echo "============================================="
-
-    - name: Cloud PC-ni ochiq tutish (6 soat)
-      shell: powershell
-      run: |
-        Start-Sleep -Seconds 21600
