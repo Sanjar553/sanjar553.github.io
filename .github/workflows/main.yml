@@ -1,34 +1,9 @@
-name: Windows Cloud PC
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: windows-latest
-
-    steps:
-    - name: User yaratish va Remote Desktop yoqish
-      shell: powershell
-      run: |
-        secedit /export /cfg cfg.ini
-        (Get-Content cfg.ini) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content cfg.ini
-        secedit /configure /db $env:windir\security\new.sdb /cfg cfg.ini /areas SECURITYPOLICY
-        net user Sanjar "${{ secrets.PC_PASSWORD }}" /add
-        net localgroup Administrators Sanjar /add
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-
-    - name: Pinggy tunnelini ochish
+- name: Pinggy tunnelini ochish
       shell: powershell
       run: |
         Start-Process -FilePath "ssh" -ArgumentList "-o StrictHostKeyChecking=no -p 443 -R0:localhost:3389 a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
-        Start-Sleep -Seconds 12
+        Start-Sleep -Seconds 15
         Write-Host "==========================================" -ForegroundColor Green
-        Get-Content pinggy.log | Select-String "tcp://"
+        Get-Content pinggy.log
+        Get-Content pinggy_err.log
         Write-Host "==========================================" -ForegroundColor Green
-
-    - name: Cloud PC-ni ochiq tutish (6 soat)
-      shell: powershell
-      run: |
-        Start-Sleep -Seconds 21600
