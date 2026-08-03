@@ -8,20 +8,24 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: RustDesk yuklab olish va o'rnatish
+    - name: RustDesk yuklab olish va ishga tushirish
       shell: powershell
       run: |
+        # Portable RustDesk yuklash
         Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-x86_64.exe" -OutFile "rustdesk.exe"
-        Start-Process -FilePath ".\rustdesk.exe" -ArgumentList "--install" -Wait
+        
+        # Orqa fonda jimjit ishga tushirish (GUI kutib qolmasligi uchun)
+        Start-Process -FilePath ".\rustdesk.exe" -ArgumentList "--service"
+        Start-Sleep -Seconds 5
         
         # Parol o'rnatish
-        & "C:\Program Files\RustDesk\rustdesk.exe" --password ${{ secrets.PC_PASSWORD }}
+        .\rustdesk.exe --password ${{ secrets.PC_PASSWORD }}
 
     - name: RustDesk ID ko'rsatish
       shell: powershell
       run: |
-        Start-Sleep -Seconds 10
-        $id = & "C:\Program Files\RustDesk\rustdesk.exe" --get-id
+        Start-Sleep -Seconds 5
+        $id = .\rustdesk.exe --get-id
         Write-Host "==========================================" -ForegroundColor Green
         Write-Host "RUSTDESK ID MANZILI: $id" -ForegroundColor Yellow
         Write-Host "PAROL: Siz GitHub Secrets'ga qo'ygan PC_PASSWORD" -ForegroundColor Yellow
