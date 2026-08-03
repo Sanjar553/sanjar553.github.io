@@ -1,4 +1,4 @@
-name: Windows Cloud PC
+name: Windows Cloud PC (RustDesk)
 
 on:
   workflow_dispatch:
@@ -8,29 +8,24 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: User yaratish va RDP Xavfsizligini moslash
+    - name: RustDesk yuklab olish va o'rnatish
       shell: powershell
       run: |
-        secedit /export /cfg cfg.ini
-        (Get-Content cfg.ini) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content cfg.ini
-        secedit /configure /db $env:windir\security\new.sdb /cfg cfg.ini /areas SECURITYPOLICY
-        net user Sanjar "${{ secrets.PC_PASSWORD }}" /add
-        net localgroup Administrators Sanjar /add
+        Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-x86_64.exe" -OutFile "rustdesk.exe"
+        Start-Process -FilePath ".\rustdesk.exe" -ArgumentList "--install" -Wait
         
-        # RDP yoqish va NLA (Network Level Auth) ni o'chirish (Internal Error ni yo'qotadi)
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 1
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        # Parol o'rnatish
+        & "C:\Program Files\RustDesk\rustdesk.exe" --password ${{ secrets.PC_PASSWORD }}
 
-    - name: Bore o'rnatish va Tunnel yoqish
+    - name: RustDesk ID ko'rsatish
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
-        Expand-Archive -Path "bore.zip" -DestinationPath "."
-        Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.log" -RedirectStandardError "bore_err.log"
-        Start-Sleep -Seconds 5
-        Get-Content bore.log | Select-String "listening at"
+        Start-Sleep -Seconds 10
+        $id = & "C:\Program Files\RustDesk\rustdesk.exe" --get-id
+        Write-Host "==========================================" -ForegroundColor Green
+        Write-Host "RUSTDESK ID MANZILI: $id" -ForegroundColor Yellow
+        Write-Host "PAROL: Siz GitHub Secrets'ga qo'ygan PC_PASSWORD" -ForegroundColor Yellow
+        Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
