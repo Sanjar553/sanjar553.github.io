@@ -1,0 +1,30 @@
+name: Windows Cloud PC
+
+on:
+  workflow_dispatch: # Tugmani bosish orqali qo'lda ishga tushirish
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Tailscale-ni o'rnatish va ulash
+      uses: tailscale/github-action@v2
+      with:
+        oauth-client-id: "" # Agarda auth-key ishlatsak buni bo'sh qoldiramiz
+        oauth-secret: ""
+        authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+    - name: Windows foydalanuvchisi va parolini sozlash
+      run: |
+        net user runneradmin "${{ secrets.PC_PASSWORD }}"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+    - name: Cloud PC-ni ochiq tutish (Loop)
+      run: |
+        echo "Cloud PC muvaffaqiyatli ishga tushdi!"
+        echo "Tailscale dashboard orqali IP manzilni oling va RDP orqali ulaning."
+        # 6 soat davomida workflow to'xtab qolmasligi uchun loop
+        Start-Sleep -Seconds 21600
+        
