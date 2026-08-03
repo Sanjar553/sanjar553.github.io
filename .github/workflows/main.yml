@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Parol siyosatini o'chirish va User yaratish
+    - name: User yaratish va Remote Desktop yoqish
       shell: powershell
       run: |
         secedit /export /cfg cfg.ini
@@ -19,31 +19,22 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: Ngrok o'rnatish va Tunnelni ochish
+    - name: Ngrok o'rnatish va Manzil chiqarish
       shell: powershell
       run: |
         choco install ngrok -y
         ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
         
-        # Ngrok-ni fon rejimida xatosiz yurgizish
-        $process = Start-Process -FilePath "ngrok" -ArgumentList "tcp 3389" -PassThru -NoNewWindow
+        # Ngrok-ni ishga tushiramiz
+        Start-Process -FilePath "ngrok" -ArgumentList "tcp 3389"
+        Start-Sleep -Seconds 10
         
-        # Ngrok to'liq ishga tushishi uchun 15 soniya kutamiz
-        Start-Sleep -Seconds 15
-        
-        # Tunnel manzilini olish
-        try {
-            $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-            $publicUrl = $response.tunnels[0].public_url
-            echo "=================================================="
-            echo "MANZIL: $publicUrl"
-            echo "=================================================="
-        } catch {
-            echo "Ngrok javob bermadi, qayta urinib ko'rilmoqda..."
-            Start-Sleep -Seconds 5
-            $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-            echo "MANZIL: $($response.tunnels[0].public_url)"
-        }
+        # API orqali manzilni olib, logga yozamiz
+        $res = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
+        $addr = $res.tunnels[0].public_url
+        Write-Host "==========================================" -ForegroundColor Green
+        Write-Host "ULANISH MANZILI: $addr" -ForegroundColor Yellow
+        Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
