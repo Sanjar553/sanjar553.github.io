@@ -19,13 +19,12 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: Ngrok yuklab olish va RDP-ni ulash
+    - name: Ngrok o'rnatish va RDP-ni ulash
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://bin.equinox.io/c/b4p23AR4588/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"
-        Expand-Archive -Path "ngrok.zip" -DestinationPath "."
-        .\ngrok.exe config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
-        Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp 3389"
+        choco install ngrok -y
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
+        Start-Process -FilePath "ngrok" -ArgumentList "tcp 3389"
 
     - name: Ulanish manzili va Portni chiqarish
       shell: powershell
