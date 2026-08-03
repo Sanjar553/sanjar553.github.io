@@ -1,4 +1,4 @@
-name: Windows Cloud PC
+name: Windows 10 Cloud PC WOW
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: User yaratish va Remote Desktop yoqish
+    - name: User yaratish va RDP sozlash
       shell: powershell
       run: |
         secedit /export /cfg cfg.ini
@@ -18,19 +18,18 @@ jobs:
         net localgroup Administrators Sanjar /add
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-Service -Name "TermService" -StartupType Automatic
+        Start-Service -Name "TermService"
 
-    - name: Bore o'rnatish va Tunnel yoqish
+    - name: Tailscale o'rnatish va Ulanish
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
-        Expand-Archive -Path "bore.zip" -DestinationPath "."
-        
-        # Bore tunnelini fonda ishga tushirish
-        Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardError "bore.log"
-        
-        Start-Sleep -Seconds 8
+        choco install tailscale -y
+        tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }}
+        Start-Sleep -Seconds 5
+        $ip = (tailscale ip -4)
         Write-Host "==========================================" -ForegroundColor Green
-        Get-Content bore.log
+        Write-Host "TAILSCALE IP MANZILI: $ip" -ForegroundColor Yellow
         Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
