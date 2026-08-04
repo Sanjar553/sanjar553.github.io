@@ -1,4 +1,4 @@
-name: Windows Cloud PC Pinggy
+name: Windows Cloud PC (Pinggy RDP)
 
 on:
   workflow_dispatch:
@@ -24,13 +24,18 @@ jobs:
     - name: Pinggy TCP Tunnel yoqish
       shell: powershell
       run: |
-        # Pinggy orqali 3389 portini tashqariga chiqaramiz
-        Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -p 443 -R0:localhost:3389 tcp@a.pinggy.io" -NoNewWindow
+        # SSH orqali ulanib, javobni pinggy.log fayliga yozamiz
+        Start-Process ssh -ArgumentList "-t -t -o StrictHostKeyChecking=no -p 443 -R0:localhost:3389 tcp@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
         
-        Start-Sleep -Seconds 10
-        Write-Host "==========================================" -ForegroundColor Green
-        Write-Host "Loglarni tekshiring: Pinggy bergan IP va Portni olib Windows App'ga yozing!" -ForegroundColor Yellow
-        Write-Host "==========================================" -ForegroundColor Green
+        Start-Sleep -Seconds 12
+        
+        # Log fayldan IP va Portni o'qiymiz
+        if (Test-Path pinggy.log) {
+            Get-Content pinggy.log
+        }
+        if (Test-Path pinggy_err.log) {
+            Get-Content pinggy_err.log
+        }
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
