@@ -1,4 +1,4 @@
-name: Windows Cloud PC (Bore RDP)
+name: Windows Cloud PC (Ngrok RDP)
 
 on:
   workflow_dispatch:
@@ -21,19 +21,24 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Bore Tunnel Yoqish
+    - name: Ngrok yuklash va TCP 3389 portni ochish
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
-        Expand-Archive -Path "bore.zip" -DestinationPath "."
+        Invoke-WebRequest -Uri "https://bin.equinox.io/c/b4pCviHvc4/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"
+        Expand-Archive -Path "ngrok.zip" -DestinationPath "."
         
-        Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.log"
+        .\ngrok.exe config add-authtoken ${{ secrets.NGROK_TOKEN }}
+        Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp 3389" -RedirectStandardOutput "ngrok.log"
         
-        Start-Sleep -Seconds 8
+        Start-Sleep -Seconds 7
         
-        if (Test-Path bore.log) {
-            Get-Content bore.log
-        }
+        # Ngrok API'dan ochiq IP va portni olish
+        $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
+        $address = $response.tunnels[0].public_url -replace 'tcp://', ''
+        
+        Write-Host "==========================================" -ForegroundColor Green
+        Write-Host "WINDOWS APP UCHUN IP MANZIL: $address" -ForegroundColor Yellow
+        Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
