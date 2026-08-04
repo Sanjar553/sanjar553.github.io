@@ -21,18 +21,21 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Ngrok yuklash va TCP 3389 portni ochish
+    - name: Ngrok o'rnatish va RDP tunnelini yoqish
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://bin.equinox.io/c/b4pCviHvc4/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"
-        Expand-Archive -Path "ngrok.zip" -DestinationPath "."
+        # Choco orqali Ngrok'ni to'g'ridan-to'g'ri o'rnatamiz
+        choco install ngrok -y
         
-        .\ngrok.exe config add-authtoken ${{ secrets.NGROK_TOKEN }}
-        Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp 3389" -RedirectStandardOutput "ngrok.log"
+        # Tokenni sozlash
+        ngrok config add-authtoken ${{ secrets.NGROK_TOKEN }}
         
-        Start-Sleep -Seconds 7
+        # TCP 3389 (RDP) portini ochish
+        Start-Process ngrok -ArgumentList "tcp 3389" -NoNewWindow
         
-        # Ngrok API'dan ochiq IP va portni olish
+        Start-Sleep -Seconds 8
+        
+        # Local API orqali berilgan manzilni olish
         $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
         $address = $response.tunnels[0].public_url -replace 'tcp://', ''
         
