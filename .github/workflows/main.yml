@@ -1,4 +1,4 @@
-name: Windows Cloud PC (RustDesk)
+name: Windows Cloud PC (Tailscale RDP)
 
 on:
   workflow_dispatch:
@@ -8,30 +8,34 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: RustDesk yuklab olish va ishga tushirish
+    - name: User va RDP sozlamalarini to'g'rilash
       shell: powershell
       run: |
-        # Portable RustDesk yuklash
-        Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-x86_64.exe" -OutFile "rustdesk.exe"
+        secedit /export /cfg cfg.ini
+        (Get-Content cfg.ini) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content cfg.ini
+        secedit /configure /db $env:windir\security\new.sdb /cfg cfg.ini /areas SECURITYPOLICY
+        net user Sanjar "${{ secrets.PC_PASSWORD }}" /add
+        net localgroup Administrators Sanjar /add
         
-        # Orqa fonda jimjit ishga tushirish (GUI kutib qolmasligi uchun)
-        Start-Process -FilePath ".\rustdesk.exe" -ArgumentList "--service"
-        Start-Sleep -Seconds 5
-        
-        # Parol o'rnatish
-        .\rustdesk.exe --password ${{ secrets.PC_PASSWORD }}
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-    - name: RustDesk ID ko'rsatish
+    - name: Tailscale yuklash va ulanish
       shell: powershell
       run: |
+        Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "tailscale.exe"
+        Start-Process -FilePath ".\tailscale.exe" -ArgumentList "/quiet" -Wait
+        
+        & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --unattended
+        
         Start-Sleep -Seconds 5
-        $id = .\rustdesk.exe --get-id
+        $ip = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
         Write-Host "==========================================" -ForegroundColor Green
-        Write-Host "RUSTDESK ID MANZILI: $id" -ForegroundColor Yellow
-        Write-Host "PAROL: Siz GitHub Secrets'ga qo'ygan PC_PASSWORD" -ForegroundColor Yellow
+        Write-Host "WINDOWS APP UCHUN IP MANZIL: $ip" -ForegroundColor Yellow
         Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
       run: |
         Start-Sleep -Seconds 21600
+        
