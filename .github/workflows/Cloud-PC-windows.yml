@@ -1,4 +1,4 @@
-name: Windows Cloud PC (Playit RDP)
+name: Windows Cloud PC (Localtonet RDP)
 
 on:
   workflow_dispatch:
@@ -21,16 +21,19 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Playit.gg yuklash va TCP tunnel yoqish
+    - name: Localtonet orqali RDP tunnel ochish
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-windows-x86_64.exe" -OutFile "playit.exe"
-        Start-Process -FilePath ".\playit.exe" -ArgumentList "--claim" -RedirectStandardOutput "playit.log"
+        Invoke-WebRequest -Uri "https://localtonet.com/download/localtonet-win-x64.zip" -OutFile "localtonet.zip"
+        Expand-Archive -Path "localtonet.zip" -DestinationPath "."
         
-        Start-Sleep -Seconds 8
+        # Token bilan avtorizatsiya va TCP 3389 portni ishga tushirish
+        .\localtonet.exe authtoken ${{ secrets.LOCALTONET_TOKEN }}
+        Start-Process -FilePath ".\localtonet.exe" -ArgumentList "tcp 3389" -RedirectStandardOutput "localtonet.log"
         
+        Start-Sleep -Seconds 10
         Write-Host "==========================================" -ForegroundColor Green
-        Get-Content playit.log | Select-String "https://playit.gg/claim/"
+        Write-Host "Localtonet Dashboard (My Tunnels) ga kiring, IP va Port tayyor!" -ForegroundColor Yellow
         Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
