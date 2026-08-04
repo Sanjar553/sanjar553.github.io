@@ -24,18 +24,20 @@ jobs:
     - name: Ngrok o'rnatish va RDP tunnelini yoqish
       shell: powershell
       run: |
-        # Choco orqali Ngrok'ni to'g'ridan-to'g'ri o'rnatamiz
         choco install ngrok -y
         
-        # Tokenni sozlash
-        ngrok config add-authtoken ${{ secrets.NGROK_TOKEN }}
+        $token = "${{ secrets.NGROK_TOKEN }}"
+        if (-not $token) {
+            Write-Error "NGROK_TOKEN secret topilmadi! Repository Secrets bo'limini tekshiring."
+            exit 1
+        }
         
-        # TCP 3389 (RDP) portini ochish
+        & ngrok config add-authtoken $token
+        
         Start-Process ngrok -ArgumentList "tcp 3389" -NoNewWindow
         
         Start-Sleep -Seconds 8
         
-        # Local API orqali berilgan manzilni olish
         $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
         $address = $response.tunnels[0].public_url -replace 'tcp://', ''
         
