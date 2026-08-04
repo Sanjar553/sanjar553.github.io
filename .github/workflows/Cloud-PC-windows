@@ -1,4 +1,4 @@
-name: Windows Cloud PC (Ngrok)
+name: Windows Cloud PC Pinggy
 
 on:
   workflow_dispatch:
@@ -8,41 +8,29 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Windows foydalanuvchisi va RDP ni sozlash
+    - name: User yaratish va RDP sozlash
       shell: powershell
       run: |
+        secedit /export /cfg cfg.ini
+        (Get-Content cfg.ini) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content cfg.ini
+        secedit /configure /db $env:windir\security\new.sdb /cfg cfg.ini /areas SECURITYPOLICY
         net user Sanjar "${{ secrets.PC_PASSWORD }}" /add
         net localgroup Administrators Sanjar /add
+        
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
+        Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Ngrok yuklab olish va RDP-ni ulash
+    - name: Pinggy TCP Tunnel yoqish
       shell: powershell
       run: |
-        echo "Ngrok yuklanmoqda..."
-        Invoke-WebRequest -Uri "https://bin.equinox.io/c/b4p23AR4588/ngrok-v3-stable-windows-amd64.zip" -OutFile "ngrok.zip"
-        Expand-Archive -Path "ngrok.zip" -DestinationPath "."
+        # Pinggy orqali 3389 portini tashqariga chiqaramiz
+        Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -p 443 -R0:localhost:3389 tcp@a.pinggy.io" -NoNewWindow
         
-        echo "Authtoken sozlanmoqda..."
-        .\ngrok.exe config add-authtoken ${{ secrets.NGROK_AUTHTOKEN }}
-        
-        echo "RDP Port uchun tunnel ochilmoqda..."
-        Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp 3389"
-
-    - name: Ulanish manzili va Portni chiqarish
-      shell: powershell
-      run: |
         Start-Sleep -Seconds 10
-        echo "============================================="
-        echo "ULANISH UCHUN MANZIL VA PORT:"
-        try {
-            $log = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-            $publicUrl = $log.tunnels[0].public_url
-            echo "URL: $publicUrl"
-        } catch {
-            echo "Ngrok tunnel ma'lumotlarini ololmadi. Loglarni tekshiring."
-        }
-        echo "============================================="
+        Write-Host "==========================================" -ForegroundColor Green
+        Write-Host "Loglarni tekshiring: Pinggy bergan IP va Portni olib Windows App'ga yozing!" -ForegroundColor Yellow
+        Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
