@@ -1,4 +1,4 @@
-name: Windows Cloud PC (Localtonet RDP)
+name: Windows Cloud PC (Serveo RDP)
 
 on:
   workflow_dispatch:
@@ -21,20 +21,17 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Localtonet orqali RDP tunnel ochish
+    - name: Serveo RDP Tunnel yoqish
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://localtonet.com/download/localtonet-win-x64.zip" -OutFile "localtonet.zip"
-        Expand-Archive -Path "localtonet.zip" -DestinationPath "."
+        # Serveo orqali TCP 3389 portini tashqariga ulash
+        Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -R 0:localhost:3389 serveo.net" -RedirectStandardOutput "serveo.log"
         
-        # Token bilan avtorizatsiya va TCP 3389 portni ishga tushirish
-        .\localtonet.exe authtoken ${{ secrets.LOCALTONET_TOKEN }}
-        Start-Process -FilePath ".\localtonet.exe" -ArgumentList "tcp 3389" -RedirectStandardOutput "localtonet.log"
+        Start-Sleep -Seconds 8
         
-        Start-Sleep -Seconds 10
-        Write-Host "==========================================" -ForegroundColor Green
-        Write-Host "Localtonet Dashboard (My Tunnels) ga kiring, IP va Port tayyor!" -ForegroundColor Yellow
-        Write-Host "==========================================" -ForegroundColor Green
+        if (Test-Path serveo.log) {
+            Get-Content serveo.log
+        }
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
