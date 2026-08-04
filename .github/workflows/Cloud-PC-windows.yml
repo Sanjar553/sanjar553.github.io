@@ -1,4 +1,4 @@
-name: Windows Cloud PC (Pinggy RDP)
+name: Windows Cloud PC (Cloudflare RDP)
 
 on:
   workflow_dispatch:
@@ -21,21 +21,19 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Pinggy TCP Tunnel yoqish
+    - name: Cloudflare Tunnel orqali RDP chiqarish
       shell: powershell
       run: |
-        # SSH orqali ulanib, javobni pinggy.log fayliga yozamiz
-        Start-Process ssh -ArgumentList "-t -t -o StrictHostKeyChecking=no -p 443 -R0:localhost:3389 tcp@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
+        Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
+        Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "tunnel --url tcp://localhost:3389" -RedirectStandardError "cf.log"
         
-        Start-Sleep -Seconds 12
+        Start-Sleep -Seconds 10
         
-        # Log fayldan IP va Portni o'qiymiz
-        if (Test-Path pinggy.log) {
-            Get-Content pinggy.log
-        }
-        if (Test-Path pinggy_err.log) {
-            Get-Content pinggy_err.log
-        }
+        $url = Select-String -Path "cf.log" -Pattern "tcp://[a-zA-Z0-9.-]+:[0-9]+" | Select-Object -ExpandProperty Matches | Select-Object -ExpandProperty Value
+        
+        Write-Host "==========================================" -ForegroundColor Green
+        Write-Host "WINDOWS APP UCHUN MANZIL: $url" -ForegroundColor Yellow
+        Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
