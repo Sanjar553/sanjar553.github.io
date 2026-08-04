@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: User va RDP sozlamalarini to'g'rilash
+    - name: User va Firewall sozlamalarini to'liq ochish
       shell: powershell
       run: |
         secedit /export /cfg cfg.ini
@@ -17,8 +17,10 @@ jobs:
         net user Sanjar "${{ secrets.PC_PASSWORD }}" /add
         net localgroup Administrators Sanjar /add
         
+        # RDP va Xavfsizlik devorini (Firewall) to'liq o'chirish
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
+        Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
     - name: Tailscale yuklash va ulanish
       shell: powershell
@@ -26,9 +28,9 @@ jobs:
         Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "tailscale.exe"
         Start-Process -FilePath ".\tailscale.exe" -ArgumentList "/quiet" -Wait
         
-        & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --unattended
+        & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --unattended --accept-routes
         
-        Start-Sleep -Seconds 5
+        Start-Sleep -Seconds 8
         $ip = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
         Write-Host "==========================================" -ForegroundColor Green
         Write-Host "WINDOWS APP UCHUN IP MANZIL: $ip" -ForegroundColor Yellow
