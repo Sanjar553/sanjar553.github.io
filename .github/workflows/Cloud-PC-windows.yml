@@ -1,4 +1,4 @@
-name: Windows Cloud PC (Cloudflare RDP)
+name: Windows Cloud PC (Playit RDP)
 
 on:
   workflow_dispatch:
@@ -21,18 +21,16 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Cloudflare Tunnel orqali RDP chiqarish
+    - name: Playit.gg yuklash va TCP tunnel yoqish
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
-        Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "tunnel --url tcp://localhost:3389" -RedirectStandardError "cf.log"
+        Invoke-WebRequest -Uri "https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-windows-x86_64.exe" -OutFile "playit.exe"
+        Start-Process -FilePath ".\playit.exe" -ArgumentList "--claim" -RedirectStandardOutput "playit.log"
         
-        Start-Sleep -Seconds 10
-        
-        $url = Select-String -Path "cf.log" -Pattern "tcp://[a-zA-Z0-9.-]+:[0-9]+" | Select-Object -ExpandProperty Matches | Select-Object -ExpandProperty Value
+        Start-Sleep -Seconds 8
         
         Write-Host "==========================================" -ForegroundColor Green
-        Write-Host "WINDOWS APP UCHUN MANZIL: $url" -ForegroundColor Yellow
+        Get-Content playit.log | Select-String "https://playit.gg/claim/"
         Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
