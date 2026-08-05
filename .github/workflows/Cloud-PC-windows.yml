@@ -1,4 +1,4 @@
-name: Windows Cloud PC (Ngrok RDP)
+name: Windows Cloud PC (Standard RDP)
 
 on:
   workflow_dispatch:
@@ -21,28 +21,16 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Ngrok o'rnatish va RDP tunnelini yoqish
+    - name: Pinggy TCP Tunnel yoqish
       shell: powershell
       run: |
-        choco install ngrok -y
+        Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 0:localhost:3389 tcp@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
         
-        $token = "${{ secrets.NGROK_TOKEN }}"
-        if (-not $token) {
-            Write-Error "NGROK_TOKEN secret topilmadi! Repository Secrets bo'limini tekshiring."
-            exit 1
-        }
-        
-        & ngrok config add-authtoken $token
-        
-        Start-Process ngrok -ArgumentList "tcp 3389" -NoNewWindow
-        
-        Start-Sleep -Seconds 8
-        
-        $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-        $address = $response.tunnels[0].public_url -replace 'tcp://', ''
+        Start-Sleep -Seconds 10
         
         Write-Host "==========================================" -ForegroundColor Green
-        Write-Host "WINDOWS APP UCHUN IP MANZIL: $address" -ForegroundColor Yellow
+        Get-Content pinggy.log | Select-String "tcp://"
+        Get-Content pinggy_err.log | Select-String "tcp://"
         Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
