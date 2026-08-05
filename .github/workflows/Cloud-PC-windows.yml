@@ -1,4 +1,4 @@
-name: Windows Cloud PC (Standard RDP)
+name: Windows Cloud PC (Cache & Pinggy RDP)
 
 on:
   workflow_dispatch:
@@ -8,6 +8,19 @@ jobs:
     runs-on: windows-latest
 
     steps:
+    - name: Repozitoriyani yuklash
+      uses: actions/checkout@v4
+
+    - name: Keshni tiklash / saqlash (Downloads va AppData)
+      uses: actions/cache@v4
+      with:
+        path: |
+          C:\Users\runneradmin\Downloads
+          C:\Users\runneradmin\AppData\Local\Temp
+        key: windows-pc-cache-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: |
+          windows-pc-cache-${{ runner.os }}-
+
     - name: User yaratish va RDP sozlash
       shell: powershell
       run: |
@@ -25,7 +38,7 @@ jobs:
       shell: cmd
       run: |
         start /b ssh -p 443 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 0:localhost:3389 tcp@a.pinggy.io > pinggy.log 2>&1
-        timeout /t 10 /nobreak
+        ping 127.0.0.1 -n 11 > nul
         type pinggy.log
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
