@@ -24,13 +24,15 @@ jobs:
     - name: Pinggy TCP Tunnel yoqish
       shell: powershell
       run: |
-        Start-Process ssh -ArgumentList "-o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 0:localhost:3389 tcp@a.pinggy.io" -RedirectStandardOutput "pinggy.log" -RedirectStandardError "pinggy_err.log"
+        # Background job sifatida ishga tushirish
+        $job = Start-Job -ScriptBlock {
+            ssh -p 443 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -T -R 0:localhost:3389 tcp@a.pinggy.io
+        }
         
         Start-Sleep -Seconds 10
         
         Write-Host "==========================================" -ForegroundColor Green
-        Get-Content pinggy.log | Select-String "tcp://"
-        Get-Content pinggy_err.log | Select-String "tcp://"
+        Receive-Job -Job $job
         Write-Host "==========================================" -ForegroundColor Green
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
