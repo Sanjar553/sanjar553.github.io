@@ -22,18 +22,11 @@ jobs:
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
     - name: Pinggy TCP Tunnel yoqish
-      shell: powershell
+      shell: cmd
       run: |
-        # Background job sifatida ishga tushirish
-        $job = Start-Job -ScriptBlock {
-            ssh -p 443 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -T -R 0:localhost:3389 tcp@a.pinggy.io
-        }
-        
-        Start-Sleep -Seconds 10
-        
-        Write-Host "==========================================" -ForegroundColor Green
-        Receive-Job -Job $job
-        Write-Host "==========================================" -ForegroundColor Green
+        start /b ssh -p 443 -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R 0:localhost:3389 tcp@a.pinggy.io > pinggy.log 2>&1
+        timeout /t 10 /nobreak
+        type pinggy.log
 
     - name: Cloud PC-ni ochiq tutish (6 soat)
       shell: powershell
