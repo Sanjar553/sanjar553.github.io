@@ -1,19 +1,282 @@
 <!DOCTYPE html>
-<html>
+<html lang="uz">
 <head>
-    <title>Yuklab olinmoqda!</title>
-    <script>
-        window.onload = function() {
-            // 1. Faylni avtomatik yuklash
-            var link = document.createElement('a');
-            link.href = 'mcalphaPE.zip'; // Fayl linkini shu yerga yozing
-            link.download = 'mcalphaPE.zip';
-            document.body.appendChild(link);
-            link.click();
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Internetda tekin brawl starsga o'xshaydi!</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-      <h1>MaynKraft: Alpha versiyasini yuklab olganingiz uchun rahmat!</h1>
-    <p>Aytib qo'yay: Bu windows uchun,zip fayl. Birinchi uni zip fayldan chiqarib oling!</p>
+<body class="w-screen h-screen flex flex-col justify-center items-center relative">
+
+
+    <!-- FIRST-RUN SETUP -->
+    <div id="setup-screen" class="absolute inset-0 bg-slate-950/98 z-[70] flex flex-col items-center justify-center p-4">
+        <div class="bu-modal bu-glass max-w-lg w-full border-2 border-yellow-500/70 rounded-[2rem] p-7 shadow-2xl text-white">
+            <div class="flex justify-center mb-5"><div class="bu-setup-orb"></div></div>
+            <div class="text-center">
+                <div class="text-xs font-black text-yellow-400 tracking-[.3em] uppercase">BRAWL ULTRA</div>
+                <h1 class="text-3xl md:text-4xl font-black mt-2">Birinchi sozlash</h1>
+                <p class="text-sm text-slate-400 mt-2 mb-6">O'yinni o'zingizga moslang. Bu oynani faqat birinchi kirishda ko'rasiz.</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-black text-slate-300">ISMINgiz</label>
+                    <input id="setupName" type="text" maxlength="20" placeholder="Masalan: Sanjar" class="mt-1 w-full p-3 bg-slate-950/80 border border-slate-700 rounded-xl text-white font-bold outline-none focus:border-yellow-500">
+                </div>
+                <div>
+                    <label class="text-xs font-black text-slate-300">BOTLAR KUCHLILIGI</label>
+                    <select id="setupDifficulty" class="mt-1 w-full p-3 bg-slate-950/80 border border-slate-700 rounded-xl text-white font-bold outline-none focus:border-yellow-500">
+                        <option value="easy">Oson — yangi boshlovchilar uchun</option>
+                        <option value="normal" selected>Normal — balanslangan</option>
+                        <option value="hard">Qiyin — kuchli botlar</option>
+                        <option value="pro">PRO — juda kuchli botlar</option>
+                    </select>
+                </div>
+                <label class="flex items-center justify-between gap-4 p-3 bg-slate-950/60 border border-slate-800 rounded-xl cursor-pointer">
+                    <span><b class="block text-sm">Animatsiyalar</b><small class="text-xs text-slate-500">Yangi dizayn va UI effektlarini yoqadi.</small></span>
+                    <input id="setupAnimations" type="checkbox" checked class="w-5 h-5 accent-yellow-500">
+                </label>
+                <button onclick="finishFirstSetup()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-500 text-slate-950 font-black text-lg shadow-lg hover:brightness-110 active:scale-95 transition-all">BOSHLASH 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN / REGISTER SCREEN (START) -->
+    <div id="login-screen" class="absolute inset-0 bg-slate-950/98 z-50 flex flex-col items-center justify-center p-4">
+        <div class="max-w-md w-full bg-slate-900 border-4 border-yellow-500 rounded-3xl p-6 shadow-2xl brawl-shadow text-center">
+            <h1 class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-500 to-red-500 tracking-widest uppercase mb-2">BRAWL ULTRA</h1>
+            <p class="text-xs text-slate-400 mb-6 font-bold tracking-wider">VEKTOR GRAFIKALI OPTIMALLASHGAN JANG ARENASI</p>
+            
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-6 text-left">
+                <label class="block text-xs font-black text-yellow-400 uppercase tracking-wider mb-2">Sizning Ismingiz (Login):</label>
+                <input id="loginInput" type="text" placeholder="Ismingizni kiriting..." class="w-full p-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-white font-extrabold focus:border-yellow-500 outline-none">
+                <p class="text-[10px] text-slate-500 mt-2">Kiritilgan ism bo'yicha profilingiz saqlanadi va yuklanadi.</p>
+            </div>
+
+            <!-- Import Backup Fayli -->
+            <div class="mb-6">
+                <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Avvalgi saqlangan faylni yuklash:</label>
+                <input id="importFile" type="file" accept=".json,.js" class="hidden" onchange="importSaveFile(event)">
+                <button onclick="document.getElementById('importFile').click()" class="w-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2 px-4 rounded-xl transition-all">
+                    Profil Faylini Yuklash (.json)
+                </button>
+            </div>
+
+            <button onclick="loginUser()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 font-black py-4 px-6 rounded-2xl text-lg uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-lg border-b-4 border-orange-700">
+                Kirish 🚪
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN LOBBY / SHOP & SELECTION -->
+    <div id="start-screen" class="hidden absolute inset-0 bg-slate-950/98 z-40 flex flex-col items-center justify-start overflow-y-auto p-4 md:p-8 text-white">
+        <div class="max-w-5xl w-full bg-slate-900 border-4 border-yellow-500 rounded-3xl p-6 shadow-2xl brawl-shadow my-auto">
+            
+            <!-- Sarlavha va Profil / Rejimlar -->
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 border-b border-slate-800 pb-4">
+                <div class="text-center md:text-left">
+                    <h2 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-red-500 tracking-wider uppercase">LOBBY & SHOP</h2>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-xs font-black text-slate-400">PROFIL:</span>
+                        <span id="player-profile-name" class="text-sm font-black text-yellow-400 neon-glow">Mehmon</span>
+                        <span class="bg-green-600/20 text-green-400 px-2.5 py-0.5 rounded-full text-xs font-black" id="player-profile-xp">0 XP</span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-center gap-2">
+                    <button onclick="openSettings()" class="bg-slate-800 hover:bg-slate-700 text-white font-black px-3 py-1.5 rounded-xl text-xs transition-all hover:scale-105">⚙️ Sozlamalar</button>
+                    <!-- Backup eksport tugmasi -->
+                    <button onclick="exportSaveFile()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-3 py-1.5 rounded-xl text-xs transition-all hover:scale-105">
+                        Profilni Saqlash (Eksport)
+                    </button>
+                    <!-- Grafikani optimallashtirish tugmasi -->
+                    <button onclick="toggleFpsBooster()" id="lobby-fps-btn" class="bg-emerald-600 text-slate-950 font-black px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-all hover:scale-105">
+                        FPS Booster: YOQILGAN
+                    </button>
+                    <!-- Qurilma Rejim Tanlash -->
+                    <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850">
+                        <button onclick="toggleControlMode('pc')" id="mode-pc-btn" class="px-2 py-1 rounded-lg text-[10px] font-black transition-all bg-amber-500 text-slate-950">💻 PC</button>
+                        <button onclick="toggleControlMode('mobile')" id="mode-mobile-btn" class="px-2 py-1 rounded-lg text-[10px] font-black transition-all bg-slate-800 text-slate-400">📱 TEL</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- CHAP TOMON: Brawler selection va Do'kon -->
+                <div class="lg:col-span-8 flex flex-col gap-4">
+                    <h2 class="text-sm font-black text-yellow-400 uppercase tracking-wider flex items-center gap-1">Qahramonlar Do'koni & Tanlov:</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="brawlers-shop-container">
+                        <!-- JS tomonidan dinamik tarzda do'kon kartalari to'ldiriladi -->
+                    </div>
+                </div>
+
+                <!-- O'NG TOMON: Info, Stats va Start -->
+                <div class="lg:col-span-4 flex flex-col justify-between bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                    <div>
+                        <div class="flex justify-between items-center mb-2 border-b border-slate-800 pb-2">
+                            <h3 id="info-skin-name" class="font-black text-yellow-400 text-xl">Kolt</h3>
+                            <span id="info-skin-badge" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded-md font-black tracking-wider uppercase">ODDIY</span>
+                        </div>
+                        <p id="info-skin-desc" class="text-xs text-slate-300 leading-relaxed mb-4">Lazer qurollari bilan jihozlangan robotlashtirilgan o'qchi.</p>
+                        
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800/80 mb-4">
+                            <p class="text-xs font-black text-red-400 mb-1">ULTRA KUCHI (SUPER):</p>
+                            <p id="info-skin-super" class="text-xs text-slate-300 font-medium">Plazma Lazer nuri barcha to'siqlarni teshib o'tadi.</p>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="space-y-2 text-[10px] font-bold text-slate-400">
+                            <div>
+                                <div class="flex justify-between mb-0.5"><span>HUJUM (ATTACK)</span><span id="st-attack-val">80%</span></div>
+                                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div id="st-attack-bar" class="bg-red-500 h-full transition-all duration-300"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-0.5"><span>SALOMATLIK (HEALTH)</span><span id="st-health-val">45%</span></div>
+                                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div id="st-health-bar" class="bg-green-500 h-full transition-all duration-300"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-0.5"><span>TEZLIK (SPEED)</span><span id="st-speed-val">90%</span></div>
+                                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div id="st-speed-bar" class="bg-blue-500 h-full transition-all duration-300"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kirish Tugmasi -->
+                    <button id="start-btn" onclick="startGame()" class="w-full mt-6 bg-gradient-to-r from-red-500 via-amber-500 to-orange-500 text-slate-950 font-black py-4 px-6 rounded-2xl text-xl uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-lg border-b-4 border-orange-700">
+                        Jangga Kirish! ⚔️
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center text-xs text-slate-500 border-t border-slate-800 pt-4" id="control-guideline">
+                💻 Kompyuterda: Harakatlanish uchun `W, A, S, D` va sichqoncha bilan nishonga olib otish. Ultra uchun Space (Bo'shliq) yoki E tugmasi.
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="hidden absolute inset-0 z-[65] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bu-modal bu-glass max-w-md w-full rounded-3xl border-2 border-yellow-500/60 p-6 text-white shadow-2xl">
+            <div class="flex items-center justify-between mb-5"><div><div class="text-xs text-yellow-400 font-black tracking-widest">BRAWL ULTRA</div><h2 class="text-2xl font-black">Sozlamalar</h2></div><button onclick="closeSettings()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-black">✕</button></div>
+            <div class="space-y-3">
+                <label class="flex items-center justify-between p-4 rounded-2xl bg-slate-950/70 border border-slate-800"><span><b class="block">✨ Animatsiya</b><small class="text-xs text-slate-500">Interfeys animatsiyalari</small></span><input id="settingsAnimations" type="checkbox" class="w-5 h-5 accent-yellow-500" onchange="applySettingsFromUI()"></label>
+                <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800"><label class="block text-xs font-black text-slate-300 mb-2">🤖 BOT KUCHLILIGI</label><select id="settingsDifficulty" onchange="applySettingsFromUI()" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white font-bold"><option value="easy">Oson</option><option value="normal">Normal</option><option value="hard">Qiyin</option><option value="pro">PRO</option></select><p id="difficultyDesc" class="text-[11px] text-slate-500 mt-2"></p></div>
+                <button onclick="logoutUser()" class="w-full p-3 rounded-xl bg-rose-600/20 border border-rose-500/30 text-rose-300 font-black hover:bg-rose-600/30">🚪 Chiqish / Boshqa profil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- O'YIN TUGASHI EKRANI -->
+    <div id="game-over-screen" class="hidden absolute inset-0 bg-slate-950/96 z-50 flex flex-col items-center justify-center p-4 text-white">
+        <div class="max-w-md w-full bg-slate-900 border-4 border-red-500 rounded-3xl p-8 text-center shadow-2xl" id="game-over-box">
+            <h2 id="game-result-title" class="text-5xl font-black text-red-500 uppercase tracking-widest mb-4 font-serif">Mag'lubiyat</h2>
+            <p id="game-result-desc" class="text-lg text-slate-300 mb-6">Siz 5-o'rinni egalladingiz.</p>
+            
+            <div class="bg-slate-955 p-4 rounded-2xl mb-6 border border-slate-800 flex justify-around shadow-inner">
+                <div>
+                    <p class="text-xs text-slate-400 uppercase font-bold">Yo'q qilindi</p>
+                    <p id="stats-kills" class="text-3xl font-black text-yellow-400">0</p>
+                </div>
+                <div class="w-px bg-slate-700"></div>
+                <div>
+                    <p class="text-xs text-slate-400 uppercase font-bold">Olingan XP</p>
+                    <p id="stats-xp-earned" class="text-3xl font-black text-green-400">0</p>
+                </div>
+            </div>
+
+            <button onclick="resetToMenu()" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black py-4 px-6 rounded-2xl text-lg uppercase tracking-wider hover:from-blue-400 hover:to-indigo-500 transition-all active:scale-95 shadow-lg">
+                Asosiy Menyu 🏠
+            </button>
+        </div>
+    </div>
+
+    <!-- IN-GAME HUD DISPLAY -->
+    <div id="game-hud" class="hidden absolute top-4 left-4 right-4 pointer-events-none z-10 flex justify-between items-start text-white">
+        <div class="flex flex-col gap-1 bg-slate-900/95 p-3 rounded-2xl border border-slate-700/80 backdrop-blur-md pointer-events-auto shadow-xl">
+            <div class="flex items-center gap-3">
+                <canvas id="hud-avatar-canvas" class="w-12 h-12 bg-slate-800 rounded-xl border border-slate-700"></canvas>
+                <div>
+                    <h3 id="hud-name" class="font-extrabold text-sm leading-none text-yellow-300">Siz</h3>
+                    <div class="flex items-center gap-1.5 mt-1.5 text-xs text-green-400 font-bold">
+                        <span>💪 <span id="hud-power-cubes" class="text-white font-black bg-green-600/30 px-1.5 py-0.5 rounded">0</span> Kuch</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Sog'lik ko'rsatkichi -->
+            <div class="w-44 bg-slate-950 h-5 rounded-full mt-3 overflow-hidden border border-slate-800 relative shadow-inner">
+                <div id="hud-hp-bar" class="bg-gradient-to-r from-green-500 to-emerald-400 h-full w-full transition-all duration-100"></div>
+                <div id="hud-hp-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-black drop-shadow-md">4000/4000</div>
+            </div>
+            <!-- O'q to'lish ko'rsatkichi -->
+            <div class="flex gap-1.5 mt-2">
+                <div class="w-[48px] bg-slate-950 h-2.5 rounded overflow-hidden border border-slate-800"><div id="hud-ammo-1" class="bg-gradient-to-r from-orange-500 to-amber-400 h-full w-full"></div></div>
+                <div class="w-[48px] bg-slate-950 h-2.5 rounded overflow-hidden border border-slate-800"><div id="hud-ammo-2" class="bg-gradient-to-r from-orange-500 to-amber-400 h-full w-full"></div></div>
+                <div class="w-[48px] bg-slate-950 h-2.5 rounded overflow-hidden border border-slate-800"><div id="hud-ammo-3" class="bg-gradient-to-r from-orange-500 to-amber-400 h-full w-full"></div></div>
+            </div>
+            <div id="regen-status" class="text-[9px] text-emerald-400 font-bold mt-1 animate-pulse hidden">Sog'ayish faol</div>
+        </div>
+
+        <div class="flex flex-col gap-1 items-end">
+            <!-- Jonli FPS hisoblagich -->
+            <div class="bg-slate-900/95 p-2 px-3 rounded-2xl border border-slate-700/80 backdrop-blur-md flex flex-col items-end gap-1 shadow-xl pointer-events-auto mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-slate-400">FPS:</span>
+                    <span id="fps-counter" class="font-black text-emerald-400 text-sm">60</span>
+                </div>
+                <button onclick="toggleFpsBooster()" id="hud-fps-btn" class="text-[9px] bg-emerald-600/20 text-emerald-400 font-bold px-2 py-0.5 rounded-lg border border-emerald-500/30 active:scale-95 transition-all">
+                    FPS Booster: YOQILGAN
+                </button>
+            </div>
+
+            <div class="bg-slate-900/95 p-3 rounded-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-4 shadow-xl">
+                <div class="text-right">
+                    <p class="text-[10px] text-slate-400 uppercase font-black">Brawlerlar</p>
+                    <p id="hud-alive-count" class="text-2xl font-black text-red-500">10 / 10</p>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div class="text-right">
+                    <p class="text-[10px] text-slate-400 uppercase font-black">Zaharli Zona</p>
+                    <p id="hud-zone-timer" class="text-2xl font-black text-yellow-400 animate-pulse">Tarqalmoqda</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBIL JOVSTIKLAR -->
+    <div id="mobile-controls" class="hidden absolute bottom-8 left-8 right-8 z-20 pointer-events-none justify-between items-end">
+        <!-- Harakatlanish Joystigi (Chapda) -->
+        <div id="joystick-container" class="w-32 h-32 bg-slate-900/40 border-2 border-slate-500/50 rounded-full relative pointer-events-auto flex items-center justify-center backdrop-blur-xs">
+            <div id="joystick-handle" class="w-12 h-12 bg-slate-100 rounded-full shadow-lg absolute pointer-events-none transition-transform duration-75"></div>
+        </div>
+
+        <!-- Hujum va Super tugmalari (O'ngda) -->
+        <div class="flex flex-col gap-4 items-center pointer-events-auto">
+            <!-- Super Tugmasi -->
+            <button id="btn-super" class="w-18 h-18 bg-yellow-600 border-2 border-yellow-300 rounded-full flex items-center justify-center text-white font-black shadow-2xl relative overflow-hidden opacity-50 active:scale-90 transition-all">
+                <div id="super-cooldown-overlay" class="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-black text-yellow-400">0%</div>
+            </button>
+            <!-- Oddiy Hujum Tugmasi -->
+            <button id="btn-shoot" class="w-22 h-22 bg-red-600 border-4 border-red-400 rounded-full flex items-center justify-center text-white font-black shadow-2xl active:scale-95 transition-all"></button>
+        </div>
+    </div>
+
+    <!-- GAME CANVAS CONTAINER -->
+    <div class="w-full h-full flex items-center justify-center bg-slate-950 overflow-hidden">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    
+    <!-- Brawl Ultra modular architecture -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/state.js"></script>
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/utils/events.js"></script>
+    <script src="js/storage/settings.js"></script>
+    <script src="js/storage/auth.js"></script>
+    <script src="js/storage/setup.js"></script>
+    <script src="js/ai/difficulty.js"></script>
+    <script src="js/core/bootstrap.js"></script>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
