@@ -1,5 +1,5 @@
 
-name: Build Java JAR to Windows EXE
+name: Package Java Swing App for Windows
 
 on:
   workflow_dispatch:
@@ -19,93 +19,76 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '21'
-          distribution: 'graalvm-community'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check JAR
+      - name: Check input JAR
         shell: pwsh
         run: |
           if (!(Test-Path "app.jar")) {
-            throw "app.jar topilmadi. Uni repository asosiy papkasiga joylang."
+            throw "app.jar topilmadi. Uni repository asosiy papkasiga yuklang."
           }
 
+          java -version
+          jar tf app.jar | Select-Object -First 10
 
-      - name: Build EXE
+      - name: Install WiX Toolset
         shell: pwsh
         run: |
-          native-image --version
-          native-image --no-fallback -jar app.jar -o MyApp
+          choco install wixtoolset --yes --no-progress
+          $wix = Get-ChildItem `
+            "C:\Program Files (x86)\WiX Toolset*" `
+            -Directory -ErrorAction SilentlyContinue |
+            Select-Object -First 1
 
-          $required = @(
-            "awt.dll",
-            "java.dll",
-            "jvm.dll",
-            "jawt.dll"
-          )
-
-          foreach ($name in $required) {
-            $file = Get-ChildItem -Path $env:JAVA_HOME -Filter $name -File -Recurse |
-              Select-Object -First 1
-
-            if (!$file) {
-              throw "GraalVM ichidan $name topilmadi"
+          if ($wix) {
+            $bin = Join-Path $wix.FullName "bin"
+            if (Test-Path $bin) {
+              Add-Content $env:GITHUB_PATH $bin
             }
-
-            Copy-Item $file.FullName . -Force
           }
 
-
-      - name: Package application
+      - name: Verify WiX
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item MyApp.exe dist\
+          $candle = Get-Command candle.exe -ErrorAction SilentlyContinue
+          $light = Get-Command light.exe -ErrorAction SilentlyContinue
 
-          $dlls = Get-ChildItem -Path . -Filter *.dll -File
-          foreach ($dll in $dlls) {
-            Copy-Item $dll.FullName dist\ -Force
+          if (!$candle -or !$light) {
+            throw "WiX candle.exe yoki light.exe topilmadi."
           }
 
-          $crtNames = @(
-            "vcruntime140.dll",
-            "vcruntime140_1.dll"
-          )
+      - name: Prepare application
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package-input | Out-Null
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item app.jar package-input\app.jar
 
-          $searchRoots = @(
-            "C:\Program Files\Microsoft Visual Studio",
-            "C:\Program Files (x86)\Microsoft Visual Studio",
-            "C:\Windows\System32"
-          )
+      - name: Create Windows installer with bundled Java
+        shell: pwsh
+        run: |
+          jpackage `
+            --type exe `
+            --name MyApp `
+            --app-version 1.0.0 `
+            --input package-input `
+            --main-jar app.jar `
+            --dest dist `
+            --win-menu `
+            --win-shortcut `
+            --win-dir-chooser
 
-          foreach ($name in $crtNames) {
-            $found = $null
-
-            foreach ($root in $searchRoots) {
-              if (Test-Path $root) {
-                $found = Get-ChildItem -Path $root -Filter $name -File -Recurse -ErrorAction SilentlyContinue |
-                  Select-Object -First 1
-              }
-              if ($found) { break }
-            }
-
-            if ($found) {
-              Copy-Item $found.FullName dist\ -Force
-              Write-Host "Topildi: $name"
-            } else {
-              Write-Warning "$name topilmadi"
-            }
+          if (!(Test-Path "dist\MyApp-1.0.0.exe")) {
+            throw "O'rnatuvchi EXE yaratilmadi."
           }
 
-          Write-Host "Paket tarkibi:"
-          Get-ChildItem dist | Select-Object Name, Length
-
-      - name: Upload Windows package
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: MyApp-Windows
-          path: dist/*
+          name: MyApp-Windows-Installer
+          path: dist/MyApp-1.0.0.exe
           if-no-files-found: error
