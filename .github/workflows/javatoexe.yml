@@ -1,27 +1,91 @@
 
-      - name: Include Visual C++ Runtime
+name: Build Java JAR to Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'app.jar'
+      - '.github/workflows/build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check JAR
         shell: pwsh
         run: |
-          $roots = @(
-            "C:\Program Files\Microsoft Visual Studio\2022",
-            "C:\Program Files (x86)\Microsoft Visual Studio\2022"
+          if (!(Test-Path "app.jar")) {
+            throw "app.jar topilmadi. Uni repository asosiy papkasiga joylang."
+          }
+
+      - name: Build EXE
+        shell: pwsh
+        run: |
+          native-image --version
+          native-image --no-fallback -jar app.jar -o MyApp
+
+      - name: Package application
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item MyApp.exe dist\
+
+          $dlls = Get-ChildItem -Path . -Filter *.dll -File
+          foreach ($dll in $dlls) {
+            Copy-Item $dll.FullName dist\ -Force
+          }
+
+          $crtNames = @(
+            "vcruntime140.dll",
+            "vcruntime140_1.dll"
           )
 
-          $crt = $null
-          foreach ($root in $roots) {
-            if (Test-Path $root) {
-              $crt = Get-ChildItem $root -Recurse -Filter vcruntime140.dll -File -ErrorAction SilentlyContinue |
-                Where-Object { $_.FullName -match 'Microsoft\.VC\d+\.CRT\\' } |
-                Select-Object -First 1
-              if ($crt) { break }
+          $searchRoots = @(
+            "C:\Program Files\Microsoft Visual Studio",
+            "C:\Program Files (x86)\Microsoft Visual Studio",
+            "C:\Windows\System32"
+          )
+
+          foreach ($name in $crtNames) {
+            $found = $null
+
+            foreach ($root in $searchRoots) {
+              if (Test-Path $root) {
+                $found = Get-ChildItem -Path $root -Filter $name -File -Recurse -ErrorAction SilentlyContinue |
+                  Select-Object -First 1
+              }
+              if ($found) { break }
+            }
+
+            if ($found) {
+              Copy-Item $found.FullName dist\ -Force
+              Write-Host "Topildi: $name"
+            } else {
+              Write-Warning "$name topilmadi"
             }
           }
 
-          if (!$crt) {
-            throw "Visual C++ runtime DLL topilmadi"
-          }
+          Write-Host "Paket tarkibi:"
+          Get-ChildItem dist | Select-Object Name, Length
 
-          $runtimeDir = $crt.DirectoryName
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item "$runtimeDir\*.dll" dist\ -Force
-          Write-Host "Runtime files copied from $runtimeDir"
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyApp-Windows
+          path: dist/*
+          if-no-files-found: error
