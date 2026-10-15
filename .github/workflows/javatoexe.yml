@@ -1,58 +1,27 @@
 
-name: Build Java JAR to Windows EXE
-
-on:
-  workflow_dispatch:
-  push:
-    paths:
-      - 'app.jar'
-      - '.github/workflows/build.yml'
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    runs-on: windows-latest
-
-    steps:
-      - name: Get source files
-        uses: actions/checkout@v4
-
-      - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '21'
-          distribution: 'graalvm-community'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check JAR
+      - name: Include Visual C++ Runtime
         shell: pwsh
         run: |
-          if (!(Test-Path "app.jar")) {
-            throw "app.jar not found in repository root"
+          $roots = @(
+            "C:\Program Files\Microsoft Visual Studio\2022",
+            "C:\Program Files (x86)\Microsoft Visual Studio\2022"
+          )
+
+          $crt = $null
+          foreach ($root in $roots) {
+            if (Test-Path $root) {
+              $crt = Get-ChildItem $root -Recurse -Filter vcruntime140.dll -File -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -match 'Microsoft\.VC\d+\.CRT\\' } |
+                Select-Object -First 1
+              if ($crt) { break }
+            }
           }
 
-      - name: Compile native Windows executable
-        shell: pwsh
-        run: |
-          native-image --version
-          native-image --no-fallback -jar app.jar -o MyApp
+          if (!$crt) {
+            throw "Visual C++ runtime DLL topilmadi"
+          }
 
-      - name: Package EXE and DLL files
-        shell: pwsh
-        run: |
+          $runtimeDir = $crt.DirectoryName
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item MyApp.exe dist\
-          Get-ChildItem -Path . -Filter *.dll -File -Recurse |
-            Where-Object { $_.FullName -notlike "*\dist\*" } |
-            Copy-Item -Destination dist\ -Force
-          Write-Host "Files included in package:"
-          Get-ChildItem dist
-
-      - name: Upload Windows bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: MyApp-Windows
-          path: dist/
-          if-no-files-found: error
+          Copy-Item "$runtimeDir\*.dll" dist\ -Force
+          Write-Host "Runtime files copied from $runtimeDir"
