@@ -33,11 +33,31 @@ jobs:
             throw "app.jar topilmadi. Uni repository asosiy papkasiga joylang."
           }
 
+
       - name: Build EXE
         shell: pwsh
         run: |
           native-image --version
           native-image --no-fallback -jar app.jar -o MyApp
+
+          $required = @(
+            "awt.dll",
+            "java.dll",
+            "jvm.dll",
+            "jawt.dll"
+          )
+
+          foreach ($name in $required) {
+            $file = Get-ChildItem -Path $env:JAVA_HOME -Filter $name -File -Recurse |
+              Select-Object -First 1
+
+            if (!$file) {
+              throw "GraalVM ichidan $name topilmadi"
+            }
+
+            Copy-Item $file.FullName . -Force
+          }
+
 
       - name: Package application
         shell: pwsh
