@@ -1,0 +1,50 @@
+
+name: Build Java JAR to Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'app.jar'
+      - '.github/workflows/build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Get source files
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check JAR
+        shell: pwsh
+        run: |
+          if (!(Test-Path "app.jar")) {
+            throw "app.jar not found in repository root"
+          }
+
+      - name: Compile native Windows executable
+        shell: pwsh
+        run: |
+          native-image --version
+          native-image `
+            --no-fallback `
+            -jar app.jar `
+            -o MyApp
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyApp-Windows-EXE
+          path: MyApp.exe
+          if-no-files-found: error
