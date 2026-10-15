@@ -37,14 +37,22 @@ jobs:
         shell: pwsh
         run: |
           native-image --version
-          native-image `
-            --no-fallback `
-            -jar app.jar `
-            -o MyApp
+          native-image --no-fallback -jar app.jar -o MyApp
 
-      - name: Upload EXE
+      - name: Package EXE and DLL files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item MyApp.exe dist\
+          Get-ChildItem -Path . -Filter *.dll -File -Recurse |
+            Where-Object { $_.FullName -notlike "*\dist\*" } |
+            Copy-Item -Destination dist\ -Force
+          Write-Host "Files included in package:"
+          Get-ChildItem dist
+
+      - name: Upload Windows bundle
         uses: actions/upload-artifact@v4
         with:
-          name: MyApp-Windows-EXE
-          path: MyApp.exe
+          name: MyApp-Windows
+          path: dist/
           if-no-files-found: error
